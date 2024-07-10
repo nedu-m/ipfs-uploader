@@ -8,7 +8,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "echo \"No tests available\""
   },
   "dependencies": {
     "@chainsafe/libp2p-noise": "^15.1.0",
