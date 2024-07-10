@@ -1,36 +1,162 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+---
+
+# IPFS Uploader with Future Blockchain Integration
+
+## Overview
+
+The IPFS Uploader is a decentralized application (dApp) that allows users to upload files to the InterPlanetary File System (IPFS) and retrieve them using their unique Content Identifier (CID). This project is built using Next.js and Helia, providing a robust interface for file management on the IPFS network. Future updates will integrate blockchain technology to record file metadata on a smart contract, enhancing the security and traceability of the uploaded files.
+
+## Features
+
+- Upload files to IPFS
+- Retrieve files from IPFS using CID
+- Future integration with blockchain to store file metadata
+
+## Technologies Used
+
+- **Next.js**: React framework for server-side rendering and static site generation.
+- **Helia**: Library for interacting with IPFS.
+- **Libp2p**: Modular network stack for peer-to-peer applications.
+- **Bootstrap**: Peer discovery service for libp2p.
+- **Docker**: Containerization for consistent environment setup.
+- **CI/CD**: Continuous Integration and Continuous Deployment using GitHub Actions.
+
+## Project Structure
+
+```
+.
+├── public
+├── src
+│   ├── components
+│   └── pages
+├── .github
+│   ├── workflows
+│   │   └── ci.yml
+├── Dockerfile
+├── next.config.js
+├── package.json
+└── README.md
+```
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js (version 20 or above)
+- Docker (optional, for containerization)
+- GitHub account (for CI/CD)
+
+### Installation
+
+1. **Clone the repository:**
+
+```bash
+git clone https://github.com/nedu-m/ipfs-uploader
+cd ipfs-uploader
+```
+
+2. **Install dependencies:**
+
+```bash
+npm install
+```
+
+3. **Run the development server:**
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. **Build the project:**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+5. **Start the production server:**
 
-## Learn More
+```bash
+npm start
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Docker Setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Build the Docker image:**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+```bash
+docker build -t ipfs-uploader .
+```
 
-## Deploy on Vercel
+2. **Run the Docker container:**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+docker run -p 3000:3000 ipfs-uploader
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+### Deploying to Vercel
+
+1. **Install Vercel CLI:**
+
+```bash
+npm install -g vercel
+```
+
+2. **Deploy the project:**
+
+```bash
+vercel
+```
+
+Follow the prompts to link your project to your Vercel account and deploy.
+
+## Usage
+
+### Uploading a File
+
+1. **Select a file:**
+   Click on the file input to select a file from your local system.
+
+2. **Upload the file:**
+   Click on the "Add to IPFS" button to upload the selected file to IPFS.
+
+3. **View the CID:**
+   After uploading, the Content Identifier (CID) of the file will be displayed.
+
+### Retrieving a File
+
+1. **Click the "Retrieve from IPFS" button:**
+   This will retrieve the file using the displayed CID.
+
+2. **Download the file:**
+   A download link for the retrieved file will be generated.
+
+## Future Integration with Blockchain
+
+The future version of this project will include:
+
+1. **Smart Contracts:**
+   - Deploying smart contracts to record file metadata on a blockchain network.
+
+2. **Blockchain Interactions:**
+   - Using web3.js or ethers.js to interact with the blockchain.
+
+3. **Environment Variables:**
+   - Securely managing blockchain-related keys using Vercel’s environment variables.
+
+## Contributing
+
+Contributions are welcome! Please fork this repository and submit a pull request for any features, bug fixes, or enhancements.
+
+1. **Fork the repository**
+2. **Create a new branch (`git checkout -b feature-branch`)**
+3. **Commit your changes (`git commit -m 'Add new feature'`)**
+4. **Push to the branch (`git push origin feature-branch`)**
+5. **Open a Pull Request**
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+Feel free to modify the above `README.md` to better fit your specific project details and preferences.
