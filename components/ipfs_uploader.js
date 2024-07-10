@@ -14,12 +14,14 @@ import { bootstrap } from '@libp2p/bootstrap';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+// Main component for IPFS file uploader
 export default function IPFS_UPLOADER() {
-  const [heliaNode, setHeliaNode] = useState(null);
-  const [file, setFile] = useState(null);
-  const [fileCid, setFileCid] = useState(null);
-  const [retrievedFileUrl, setRetrievedFileUrl] = useState(null);
+  const [heliaNode, setHeliaNode] = useState(null); // State to hold the Helia node instance
+  const [file, setFile] = useState(null); // State to hold the selected file
+  const [fileCid, setFileCid] = useState(null); // State to hold the CID of the uploaded file
+  const [retrievedFileUrl, setRetrievedFileUrl] = useState(null); // State to hold the URL of the retrieved file
 
+  // Initialize Helia node on component mount
   useEffect(() => {
     const initHelia = async () => {
       try {
@@ -31,17 +33,18 @@ export default function IPFS_UPLOADER() {
         const libp2p = await createLibp2p({
           datastore,
           transports: [
-            webSockets()
+            webSockets() // Use WebSockets transport
           ],
           connectionEncryption: [
-            noise()
+            noise() // Use noise protocol for encryption
           ],
           streamMuxers: [
-            yamux()
+            yamux() // Use yamux for stream multiplexing
           ],
           peerDiscovery: [
             bootstrap({
               list: [
+                // List of bootstrap peers for discovery
                 "/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
                 "/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
                 "/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
@@ -50,7 +53,7 @@ export default function IPFS_UPLOADER() {
             })
           ],
           services: {
-            identify: identify()
+            identify: identify() // Use identify service for peer identification
           }
         });
 
@@ -61,32 +64,34 @@ export default function IPFS_UPLOADER() {
           libp2p
         });
 
-        setHeliaNode(node);
+        setHeliaNode(node); // Set the Helia node in state
         console.log("Helia node initialized with storage and networking");
       } catch (err) {
         console.error("Error initializing Helia node:", err);
       }
     };
-    initHelia();
+    initHelia(); // Call the initialization function
   }, []);
 
+  // Handle file selection
   const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+    setFile(e.target.files[0]); // Set the selected file in state
     console.log("File selected:", e.target.files[0]);
   };
 
+  // Handle file upload to IPFS
   const handleUpload = async () => {
     if (heliaNode && file) {
       console.log("Starting file upload...");
       const reader = new FileReader();
       reader.onload = async () => {
-        const bytes = new Uint8Array(reader.result);
+        const bytes = new Uint8Array(reader.result); // Read file as bytes
         console.log("File read as bytes:", bytes);
         try {
-          const fs = unixfs(heliaNode);
-          const cid = await fs.addBytes(bytes);
+          const fs = unixfs(heliaNode); // Create UnixFS instance
+          const cid = await fs.addBytes(bytes); // Add bytes to IPFS
           console.log("Added file:", cid.toString());
-          setFileCid(cid.toString());
+          setFileCid(cid.toString()); // Set the CID of the uploaded file in state
         } catch (err) {
           console.error("Error adding file:", err);
         }
@@ -94,19 +99,21 @@ export default function IPFS_UPLOADER() {
       reader.onerror = (err) => {
         console.error("Error reading file:", err);
       };
-      reader.readAsArrayBuffer(file);
+      reader.readAsArrayBuffer(file); // Read file as ArrayBuffer
     } else {
       console.warn("Helia node or file not available");
     }
   };
 
+  // Handle file retrieval from IPFS
   const handleRetrieve = async () => {
     if (heliaNode && fileCid) {
       try {
         console.log("Retrieving file with CID:", fileCid);
-        const fs = unixfs(heliaNode);
+        const fs = unixfs(heliaNode); // Create UnixFS instance
         let retrievedBytes = new Uint8Array();
         for await (const chunk of fs.cat(fileCid)) {
+          // Concatenate retrieved chunks
           const temp = new Uint8Array(retrievedBytes.length + chunk.length);
           temp.set(retrievedBytes);
           temp.set(chunk, retrievedBytes.length);
