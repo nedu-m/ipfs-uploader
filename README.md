@@ -26,7 +26,7 @@ The IPFS Uploader is a decentralized application (dApp) that allows users to upl
 ```
 .
 ├── public
-├── src
+├── app
 │   ├── components
 │   └── pages
 ├── .github
