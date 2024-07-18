@@ -154,7 +154,8 @@ export default function IPFS_UPLOADER() {
                 onChange={handleFileChange}
                 className="border rounded p-2"
               />
-              <Button onClick={handleUpload} disabled={!heliaNode || !file}>
+              <Button
+                onClick={handleUpload} disabled={!heliaNode || !file}>
                 Add to IPFS
               </Button>
             </div>
