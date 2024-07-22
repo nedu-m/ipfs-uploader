@@ -31,12 +31,7 @@ jobs:
         run: echo "${{ secrets.DOCKER_PAT }}" | docker login -u nedumrr --password-stdin
 
       - name: Build Docker image
-        uses: docker/build-push-action@v2
-        with:
-          push: false
-          tags: nedumrr/ipfs_uploader:latest
-          cache-from: type=registry,ref=nedumrr/ipfs_uploader:cache
-          cache-to: type=inline,mode=max
+        run: docker build -t nedumrr/ipfs_uploader:latest .
 
       - name: Push Docker image
         run: docker push nedumrr/ipfs_uploader:latest
