@@ -30,8 +30,46 @@ jobs:
       - name: Log in to Docker Hub using PAT
         run: echo "${{ secrets.DOCKER_PAT }}" | docker login -u nedumrr --password-stdin
 
-      - name: Build and push Docker image
+      - name: Build Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: false
+          tags: nedumrr/ipfs_uploader:latest
+
+      - name: Lint Dockerfile
+        run: docker run --rm -i hadolint/hadolint < Dockerfile
+
+      - name: Save Docker image as an artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: docker-image
+          path: docker-image.tar
+        run: docker save nedumrr/ipfs_uploader:latest -o docker-image.tar
+
+  push:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: docker-image
+          path: docker-image.tar
+
+      - name: Load Docker image
+        run: docker load -i docker-image.tar
+
+      - name: Push Docker image
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: nedumrr/ipfs_uploader:latest
+          tags: |
+            nedumrr/ipfs_uploader:latest
+            nedumrr/ipfs_uploader:${{ github.sha }}
+
+      - name: Cleanup Docker images
+        run: |
+          docker rmi nedumrr/ipfs_uploader:latest
+          docker rmi nedumrr/ipfs_uploader:${{ github.sha }}
