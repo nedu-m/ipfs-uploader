@@ -27,11 +27,31 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      - name: Log in to Docker Hub using PAT
-        run: echo "${{ secrets.DOCKER_PAT }}" | docker login -u nedumrr --password-stdin
-
       - name: Build Docker image
         run: docker build -t nedumrr/ipfs_uploader:latest .
+
+      - name: Upload Docker image as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-image
+          path: |
+            ./
+            !node_modules
+            !.*.log
+
+  push:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-image
+          path: ./
+
+      - name: Log in to Docker Hub using PAT
+        run: echo "${{ secrets.DOCKER_PAT }}" | docker login -u nedumrr --password-stdin
 
       - name: Push Docker image
         run: docker push nedumrr/ipfs_uploader:latest
