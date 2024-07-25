@@ -39,7 +39,7 @@ jobs:
           name: docker-image
           path: ipfs_uploader.tar
 
-  push:
+  push-to-docker-hub:
     runs-on: ubuntu-latest
     needs: build
 
@@ -55,5 +55,41 @@ jobs:
       - name: Log in to Docker Hub using PAT
         run: echo "${{ secrets.DOCKER_PAT }}" | docker login -u nedumrr --password-stdin
 
-      - name: Push Docker image
+      - name: Push Docker image to Docker Hub
         run: docker push nedumrr/ipfs_uploader:latest
+
+  push-to-AWS-ECR:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-image
+
+      - name: Load Docker image from file
+        run: docker load -i ipfs_uploader.tar
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-north-1
+
+      - name: Create ECR repository if it doesn't exist
+        id: ecr-repo
+        run: |
+          aws ecr describe-repositories --repository-names ipfs_uploader || \
+          aws ecr create-repository --repository-name ipfs_uploader
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        run: aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 058264444282.dkr.ecr.eu-north-1.amazonaws.com
+
+      - name: Tag Docker image for ECR
+        run: docker tag nedumrr/ipfs_uploader:latest 058264444282.dkr.ecr.eu-north-1.amazonaws.com/ipfs_uploader:latest
+
+      - name: Push Docker image to ECR
+        run: docker push 058264444282.dkr.ecr.eu-north-1.amazonaws.com/ipfs_uploader:latest
