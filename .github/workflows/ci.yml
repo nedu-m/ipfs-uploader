@@ -28,7 +28,7 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Build Docker image
-        run: docker build -t nedumrr/ipfs_uploader:latest .
+        run: docker build -t nedumrr/ipfs_uploader:latest -t 058264444282.dkr.ecr.eu-north-1.amazonaws.com/ipfs_uploader:latest .
 
       - name: Save Docker image to file
         run: docker save -o ipfs_uploader.tar nedumrr/ipfs_uploader:latest
