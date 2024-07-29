@@ -13,6 +13,14 @@ import { webSockets } from '@libp2p/websockets';
 import { bootstrap } from '@libp2p/bootstrap';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import crypto from 'crypto-js';
+
+
+// Function to replace crypto.subtle.digest
+async function digestMessage(message) {
+  const hash = crypto.SHA256(message);
+  return new Uint8Array(hash.words.map(word => [(word >> 24) & 0xff, (word >> 16) & 0xff, (word >> 8) & 0xff, word & 0xff]).flat());
+}
 
 // Main component for IPFS file uploader
 export default function IPFS_UPLOADER() {
@@ -89,7 +97,9 @@ export default function IPFS_UPLOADER() {
         console.log("File read as bytes:", bytes);
         try {
           const fs = unixfs(heliaNode); // Create UnixFS instance
-          const cid = await fs.addBytes(bytes); // Add bytes to IPFS
+          const message = new TextDecoder().decode(bytes)
+          const hash = await digestMessage(message)
+          const cid = await fs.addBytes(hash); // Add bytes to IPFS
           console.log("Added file:", cid.toString());
           setFileCid(cid.toString()); // Set the CID of the uploaded file in state
         } catch (err) {
@@ -155,6 +165,7 @@ export default function IPFS_UPLOADER() {
                 className="border rounded p-2"
               />
               <Button
+                variant="outline"
                 onClick={handleUpload} disabled={!heliaNode || !file}>
                 Add to IPFS
               </Button>
