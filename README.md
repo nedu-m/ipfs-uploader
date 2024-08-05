@@ -20,6 +20,9 @@ The IPFS Uploader is a decentralized application (dApp) that allows users to upl
 - **Bootstrap**: Peer discovery service for libp2p.
 - **Docker**: Containerization for consistent environment setup.
 - **CI/CD**: Continuous Integration and Continuous Deployment using GitHub Actions.
+- **AWS ECR**: Container registry to store Docker images.
+- **AWS ECS**: Container orchestration service for running and scaling containerized applications.
+- **Application Load Balancer (ALB)**: Distributes incoming application traffic across multiple targets for increased availability.
 
 ## Project Structure
 
@@ -91,6 +94,85 @@ docker build -t ipfs-uploader .
 
 ```bash
 docker run -p 3000:3000 ipfs-uploader
+```
+
+### Deploying to AWS ECS
+
+1. **Create an ECR Repository:**
+
+```bash
+aws ecr create-repository --repository-name ipfs_uploader --region eu-north-1
+```
+
+2. **Tag and Push Docker Image to ECR:**
+
+```bash
+docker tag ipfs_uploader:latest <aws_account_id>.dkr.ecr.eu-north-1.amazonaws.com/ipfs_uploader:latest
+docker push <aws_account_id>.dkr.ecr.eu-north-1.amazonaws.com/ipfs_uploader:latest
+```
+
+3. **Create ECS Cluster:**
+
+```bash
+aws ecs create-cluster --cluster-name ipfs-uploader-cluster --region eu-north-1
+```
+
+4. **Create Task Definition JSON File:**
+
+```json
+{
+  "family": "ipfs-uploader-task",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::<aws_account_id>:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::<aws_account_id>:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "ipfs_uploader",
+      "image": "<aws_account_id>.dkr.ecr.eu-north-1.amazonaws.com/ipfs_uploader:latest",
+      "cpu": 512,
+      "memory": 1024,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "hostPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/ipfs-uploader-task",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048"
+}
+
+```
+
+5. **Register Task Definition:**
+
+```bash
+aws ecs register-task-definition --cli-input-json file://task-definition.json
+```
+
+6. **Create Security Group and Allow Inbound Traffic:**
+
+```bash
+aws ec2 create-security-group --group-name ipfs-uploader-sg --description "Security group for IPFS uploader" --vpc-id <vpc-id> --region eu-north-1
+aws ec2 authorize-security-group-ingress --group-id <security-group-id> --protocol tcp --port 80 --cidr 0.0.0.0/0 --region eu-north-1
+```
+
+6. **Create ECS Service:**
+
+```bash
+aws ecs create-service --cluster ipfs-uploader-cluster --service-name ipfs-uploader-service --task-definition ipfs-uploader-task --desired-count 1 --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[<subnet-1>,<subnet-2>,<subnet-3>],securityGroups=[<security-group-id>],assignPublicIp=ENABLED}" --region eu-north-1
 ```
 
 ### Deploying to Vercel
