@@ -20,7 +20,7 @@ import crypto from 'crypto-js';
  * @param {string} message - The message to be hashed.
  * @returns {Promise<Uint8Array>} - The SHA-256 hash of the message.
  */
-async function digestMessage(message) {
+export async function digestMessage(message) {
   const hash = crypto.SHA256(message);
   return new Uint8Array(hash.words.map(word => [(word >> 24) & 0xff, (word >> 16) & 0xff, (word >> 8) & 0xff, word & 0xff]).flat());
 }
@@ -205,7 +205,9 @@ export default function IPFS_UPLOADER() {
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             <div className="flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-muted rounded-lg p-8">
+              <label htmlFor="file-input">Choose file</label>
               <input
+                id="file-input"
                 type="file"
                 onChange={handleFileChange}
                 className="border rounded p-2"
@@ -222,9 +224,7 @@ export default function IPFS_UPLOADER() {
             {fileCid && <p>File CID: {fileCid}</p>}
 
             {fileCid && (
-              <Button onClick={handleRetrieve} disabled={loading}
-              variant="outline"
-              >
+              <Button onClick={handleRetrieve} disabled={loading}>
                 {loading ? "Retrieving..." : "Retrieve from IPFS"}
               </Button>
             )}
