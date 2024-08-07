@@ -1,4 +1,5 @@
 ---
+[![CI/CD Pipeline](https://github.com/nedu-m/ipfs-uploader/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/nedu-m/ipfs-uploader/actions/workflows/ci-cd.yml)
 
 # IPFS Uploader with Future Blockchain Integration
 
