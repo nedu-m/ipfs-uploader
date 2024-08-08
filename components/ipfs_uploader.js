@@ -22,8 +22,14 @@ import crypto from 'crypto-js';
  */
 export async function digestMessage(message) {
   const hash = crypto.SHA256(message);
-  return new Uint8Array(hash.words.map(word => [(word >> 24) & 0xff, (word >> 16) & 0xff, (word >> 8) & 0xff, word & 0xff]).flat());
+  return new Uint8Array(hash.words.map(word => [
+    (word >> 24) & 0xff,
+    (word >> 16) & 0xff,
+    (word >> 8) & 0xff,
+    word & 0xff
+  ]).flat());
 }
+
 
 /**
  * Initialize Helia node
@@ -104,22 +110,29 @@ export default function IPFS_UPLOADER() {
    * Handle file upload to IPFS
    */
   const handleUpload = async () => {
-    if (!heliaNode || !file) {
+    if (heliaNode && file) {
+      console.log("Starting file upload...");
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const bytes = new Uint8Array(reader.result);
+        console.log("File read as bytes:", bytes);
+        try {
+          const fs = unixfs(heliaNode);
+          const message = new TextDecoder().decode(bytes);
+          const hash = await digestMessage(message);
+          const cid = await fs.addBytes(hash);
+          console.log("Added file:", cid.toString());
+          setFileCid(cid.toString());
+        } catch (err) {
+          console.error("Error adding file:", err);
+        }
+      };
+      reader.onerror = (err) => {
+        console.error("Error reading file:", err);
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
       console.warn("Helia node or file not available");
-      return;
-    }
-
-    setLoading(true);
-    console.log("Starting file upload...");
-
-    try {
-      const cid = await uploadFileToIPFS(heliaNode, file);
-      setFileCid(cid.toString());
-      console.log("Added file:", cid.toString());
-    } catch (err) {
-      console.error("Error adding file:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
