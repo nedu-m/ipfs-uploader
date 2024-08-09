@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  build-and-test:
+  set-up-code-and-test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -41,20 +41,15 @@ jobs:
           name: test-output
           path: test-output.log
 
-      - name: Add test results to summary
-        uses: actions/github-script@v4
+      - name: Upload coverage
+        uses: actions/upload-artifact@v3
         with:
-          script: |
-            const fs = require('fs');
-            const testOutput = fs.readFileSync('test-output.log', 'utf8');
-            core.summary
-              .addHeading('Test Results')
-              .addCodeBlock(testOutput)
-              .write();
+          name: coverage
+          path: coverage/
 
   build:
     runs-on: ubuntu-latest
-    needs: build-and-test
+    needs: set-up-code-and-test
 
     steps:
       - name: Checkout code
@@ -83,26 +78,7 @@ jobs:
           name: docker-image
           path: ipfs_uploader.tar
 
-  push-to-docker-hub:
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Download Docker image artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: docker-image
-
-      - name: Load Docker image from file
-        run: docker load -i ipfs_uploader.tar
-
-      - name: Log in to Docker Hub using PAT
-        run: echo "${{ secrets.DOCKER_PAT }}" | docker login -u nedumrr --password-stdin
-
-      - name: Push Docker image to Docker Hub
-        run: docker push nedumrr/ipfs_uploader:latest
-
-  push-to-AWS-ECR:
+  push-to-aws-ecr:
     runs-on: ubuntu-latest
     needs: build
 
@@ -121,12 +97,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-north-1
-
-      - name: Create ECR repository if it doesn't exist
-        id: ecr-repo
-        run: |
-          aws ecr describe-repositories --repository-names ipfs_uploader || \
-          aws ecr create-repository --repository-name ipfs_uploader
 
       - name: Log in to Amazon ECR
         id: ecr-login
@@ -140,7 +110,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [push-to-docker-hub, push-to-AWS-ECR]
+    needs: [push-to-aws-ecr]
 
     steps:
       - name: Configure AWS credentials
@@ -153,3 +123,51 @@ jobs:
       - name: Update ECS service
         run: |
           aws ecs update-service --cluster ipfs-uploader-cluster --service ipfs-uploader-service --force-new-deployment
+
+  cleanup-ecr:
+    runs-on: ubuntu-latest
+    needs: deploy
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-north-1
+
+      - name: List images and delete older ones
+        run: |
+          IMAGES=$(aws ecr describe-images --repository-name ipfs_uploader --region eu-north-1 --query 'imageDetails[*].{Digest: imageDigest, PushedAt: imagePushedAt}' --output json | jq -r '. | sort_by(.PushedAt) | .[].Digest')
+          echo "Found images:" > cleanup_ecr.log
+          echo "$IMAGES" >> cleanup_ecr.log
+          NUM_IMAGES=$(echo "$IMAGES" | wc -l)
+          echo "Number of images: $NUM_IMAGES" >> cleanup_ecr.log
+          NUM_TO_DELETE=$((NUM_IMAGES - 3))
+          if [ $NUM_TO_DELETE -gt 0 ]; then
+            IMAGES_TO_DELETE=$(echo "$IMAGES" | head -n $NUM_TO_DELETE)
+            echo "Images to delete:" >> cleanup_ecr.log
+            echo "$IMAGES_TO_DELETE" >> cleanup_ecr.log
+            for DIGEST in $IMAGES_TO_DELETE; do
+              aws ecr batch-delete-image --repository-name ipfs_uploader --region eu-north-1 --image-ids imageDigest=$DIGEST
+              echo "Deleted image with digest $DIGEST" >> cleanup_ecr.log
+            done
+          else
+            echo "No images to delete" >> cleanup_ecr.log
+
+      - name: Upload cleanup log
+        uses: actions/upload-artifact@v3
+        with:
+          name: cleanup-ecr-log
+          path: cleanup_ecr.log
+
+      - name: Print cleanup log as summary
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const log = fs.readFileSync('cleanup_ecr.log', 'utf8');
+            core.summary
+              .addHeading('ECR Cleanup Log')
+              .addCodeBlock(log)
+              .write();
