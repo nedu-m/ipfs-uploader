@@ -41,16 +41,11 @@ jobs:
           name: test-output
           path: test-output.log
 
-      - name: Add test results to summary
-        uses: actions/github-script@v4
+      - name: Upload coverage
+        uses: actions/upload-artifact@v3
         with:
-          script: |
-            const fs = require('fs');
-            const testOutput = fs.readFileSync('test-output.log', 'utf8');
-            core.summary
-              .addHeading('Test Results')
-              .addCodeBlock(testOutput)
-              .write();
+          name: coverage
+          path: coverage/
 
   build:
     runs-on: ubuntu-latest
