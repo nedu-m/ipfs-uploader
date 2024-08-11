@@ -13,6 +13,7 @@ import { webSockets } from '@libp2p/websockets';
 import { bootstrap } from '@libp2p/bootstrap';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import * as Sentry from '@sentry/nextjs';
 import crypto from 'crypto-js';
 
 /**
@@ -89,9 +90,9 @@ export default function IPFS_UPLOADER() {
       try {
         const node = await initHeliaNode();
         setHeliaNode(node);
-        console.log("Helia node initialized with storage and networking");
+        Sentry.captureMessage("Helia node initialized with storage and networking");
       } catch (err) {
-        console.error("Error initializing Helia node:", err);
+        Sentry.captureException(err);
       }
     };
     initialize();
@@ -103,7 +104,7 @@ export default function IPFS_UPLOADER() {
    */
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
-    console.log("File selected:", e.target.files[0]);
+    Sentry.captureMessage(`File selected: ${e.target.files[0].name}`);
   };
 
   /**
@@ -111,28 +112,28 @@ export default function IPFS_UPLOADER() {
    */
   const handleUpload = async () => {
     if (heliaNode && file) {
-      console.log("Starting file upload...");
+      Sentry.captureMessage("Starting file upload...");
       const reader = new FileReader();
       reader.onload = async () => {
         const bytes = new Uint8Array(reader.result);
-        console.log("File read as bytes:", bytes);
+        Sentry.captureMessage(`File read as bytes: ${bytes.byteLength} bytes`);
         try {
           const fs = unixfs(heliaNode);
           const message = new TextDecoder().decode(bytes);
           const hash = await digestMessage(message);
           const cid = await fs.addBytes(hash);
-          console.log("Added file:", cid.toString());
+          Sentry.captureMessage(`Added file: ${cid.toString()}`);
           setFileCid(cid.toString());
         } catch (err) {
-          console.error("Error adding file:", err);
+          Sentry.captureException(err);
         }
       };
       reader.onerror = (err) => {
-        console.error("Error reading file:", err);
+        Sentry.captureException(err);
       };
       reader.readAsArrayBuffer(file);
     } else {
-      console.warn("Helia node or file not available");
+      Sentry.captureMessage("Helia node or file not available", 'warning');
     }
   };
 
@@ -147,7 +148,7 @@ export default function IPFS_UPLOADER() {
       const reader = new FileReader();
       reader.onload = async () => {
         const bytes = new Uint8Array(reader.result);
-        console.log("File read as bytes:", bytes);
+        Sentry.captureMessage(`File read as bytes: ${bytes.byteLength} bytes`);
         try {
           const fs = unixfs(node);
           const message = new TextDecoder().decode(bytes);
@@ -156,9 +157,13 @@ export default function IPFS_UPLOADER() {
           resolve(cid);
         } catch (err) {
           reject(err);
+          Sentry.captureException(err);
         }
       };
-      reader.onerror = (err) => reject(err);
+      reader.onerror = (err) => {
+        reject(err);
+        Sentry.captureException(err);
+      };
       reader.readAsArrayBuffer(file);
     });
   };
@@ -168,19 +173,19 @@ export default function IPFS_UPLOADER() {
    */
   const handleRetrieve = async () => {
     if (!heliaNode || !fileCid) {
-      console.warn("Helia node or file CID not available");
+      Sentry.captureMessage("Helia node or file CID not available", 'warning');
       return;
     }
 
     setLoading(true);
-    console.log("Retrieving file with CID:", fileCid);
+    Sentry.captureMessage(`Retrieving file with CID: ${fileCid}`);
 
     try {
       const url = await retrieveFileFromIPFS(heliaNode, fileCid, file.type);
       setRetrievedFileUrl(url);
-      console.log("Retrieved file URL:", url);
+      Sentry.captureMessage(`Retrieved file URL: ${url}`);
     } catch (err) {
-      console.error("Error retrieving file:", err);
+      Sentry.captureException(err);
     } finally {
       setLoading(false);
     }
